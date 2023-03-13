@@ -86,7 +86,7 @@ epochs = 500
 # netG = TurbNetG(channelExponent=expo, dropout=dropout)
 # netG = SwinTransformer(img_size=128, embed_dim=96, in_chans=3, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24], window_size=4, drop_path_rate=0.2)
 # netG = SwinTransformer(img_size=128, embed_dim=256, in_chans=3, depths=[2, 6, 2], num_heads=[4, 8, 8], window_size=4, drop_path_rate=0.2)
-netG = SwinTransformer(img_size=128, embed_dim=128, in_chans=3, depths=[2, 6, 2], num_heads=[4, 4, 4], window_size=4, drop_path_rate=0.1)
+netG = SwinTransformer(img_size=128, embed_dim=128, in_chans=3, depths=[2, 6], num_heads=[4, 4], window_size=4, drop_path_rate=0.1)
 netG = paddle.DataParallel(netG)
 print(netG)  # print full net
 params = sum([np.prod(p.shape) for p in netG.parameters() if p.trainable])
