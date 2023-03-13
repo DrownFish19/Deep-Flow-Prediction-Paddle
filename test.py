@@ -9,7 +9,6 @@
 
 import math
 import os
-import sys
 
 import numpy as np
 import paddle
@@ -17,24 +16,27 @@ import paddle.nn as nn
 from paddle.io import DataLoader
 
 import utils
+from DfpNet import TurbNetG
 from dataset import TurbDataset
 from swin_transformer import SwinTransformer
 from utils import log
 
 suffix = ""  # customize loading & output if necessary
-prefix = ""
-if len(sys.argv) > 1:
-    prefix = sys.argv[1]
-    print("Output prefix: {}".format(prefix))
 
-expo = 5
-dataset = TurbDataset(None, mode=TurbDataset.TEST, dataDir="data/train/reg/", dataDirTest="data/test/")
+model_name = "TurbNetG"
+# model_name = "SwinTransformer"
+prefix = model_name
+
+expo = 6
+dataset = TurbDataset(None, mode=TurbDataset.TEST, dataDir="dataset/train/reg/", dataDirTest="dataset/test/")
 testLoader = DataLoader(dataset, batch_size=1, shuffle=False)
 
-# netG = TurbNetG(channelExponent=expo)
-netG = SwinTransformer(img_size=128, embed_dim=128, in_chans=3, depths=[2, 6], num_heads=[4, 4], window_size=4, drop_path_rate=0.1)
+if model_name == "TurbNetG":
+    netG = TurbNetG(channelExponent=expo)
+else:
+    netG = SwinTransformer(img_size=128, embed_dim=128, in_chans=3, depths=[2, 6], num_heads=[4, 4], window_size=4, drop_path_rate=0.1)
 
-lf = "./" + prefix + "testout{}.txt".format(suffix)
+lf = "./" + prefix + "_testout{}.txt".format(suffix)
 utils.makeDirs(["results_test"])
 
 # loop over different trained models
@@ -42,7 +44,10 @@ avgLoss = 0.
 losses = []
 models = []
 
-modelFn = "ckpt/SwinTransformer_modelG"
+if model_name == "TurbNetG":
+    modelFn = "ckpt/TurbNetG_modelG"
+else:
+    modelFn = "ckpt/SwinTransformer_modelG"
 
 models.append(modelFn)
 log(lf, "Loading " + modelFn)
@@ -114,7 +119,8 @@ lossPer_p_accum /= len(testLoader)
 lossPer_v_accum /= len(testLoader)
 lossPer_accum /= len(testLoader)
 L1val_dn_accum /= len(testLoader)
-log(lf, "Loss percentage (p, v, combined) (relative error): %f %%    %f %%    %f %% " % (lossPer_p_accum * 100, lossPer_v_accum * 100, lossPer_accum * 100))
+log(lf, "Loss percentage (p, v, combined) (relative error): %f %%    %f %%    %f %% " % (
+    lossPer_p_accum * 100, lossPer_v_accum * 100, lossPer_accum * 100))
 log(lf, "L1 error: %f" % L1val_accum)
 log(lf, "Denormalized error: %f" % L1val_dn_accum)
 log(lf, "\n")
