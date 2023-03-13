@@ -7,22 +7,17 @@
 ################
 
 import random
-import sys
 
 import numpy as np
 import paddle
-import paddle.distributed as dist
 import paddle.nn as nn
 import paddle.optimizer as optim
 from paddle.io import DataLoader
 
 import dataset
 import utils
-from DfpNet import weights_init
+from DfpNet import weights_init, TurbNetG
 from swin_transformer import SwinTransformer
-
-# 初始化并行环境
-dist.init_parallel_env()
 
 ######## Settings ########
 
@@ -35,26 +30,22 @@ lrG = 0.0006
 # decay learning rate?
 decayLr = True
 # channel exponent to control network size
-expo = 5
+expo = 6
 # data set config
 # prop = None  # by default, use all from "../data/train"
 prop = [1000, 0.75, 0, 0.25]  # mix data from multiple directories
 # save txt files with per epoch loss?
 saveL1 = True
 
-reg = True
-dataDir = "data/train/"
-dataDirTest = "data/test/"
+dataDir = "dataset/train/"
+dataDirTest = "dataset/test/"
+
+# model_name = "TurbNetG"
+model_name = "SwinTransformer"
+prefix = model_name
+epochs = 500
 ##########################
 
-prefix = ""
-if len(sys.argv) > 1:
-    prefix = sys.argv[1]
-    print("Output prefix: {}".format(prefix))
-    prop[0] = int(sys.argv[2])
-
-if prop is not None:
-    prefix += str(prop[0]) + "_"
 
 dropout = 0.  # note, the original runs from https://arxiv.org/abs/1810.08217 used slight dropout, but the effect is minimal; conv layers "shouldn't need" dropout, hence set to 0 here.
 doLoad = ""  # optional, path to pre-trained model
@@ -81,13 +72,10 @@ valiLoader = DataLoader(dataValidation, batch_size=batch_size, shuffle=False, dr
 print("Validation batches: {}".format(len(valiLoader)))
 
 # setup training
-epochs = int(iterations / len(trainLoader) + 0.5)
-epochs = 500
-# netG = TurbNetG(channelExponent=expo, dropout=dropout)
-# netG = SwinTransformer(img_size=128, embed_dim=96, in_chans=3, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24], window_size=4, drop_path_rate=0.2)
-# netG = SwinTransformer(img_size=128, embed_dim=256, in_chans=3, depths=[2, 6, 2], num_heads=[4, 8, 8], window_size=4, drop_path_rate=0.2)
-netG = SwinTransformer(img_size=128, embed_dim=128, in_chans=3, depths=[2, 6], num_heads=[4, 4], window_size=4, drop_path_rate=0.1)
-netG = paddle.DataParallel(netG)
+if model_name == "TurbNetG":
+    netG = TurbNetG(channelExponent=expo, dropout=dropout)
+else:
+    netG = SwinTransformer(img_size=128, embed_dim=128, in_chans=3, depths=[2, 6], num_heads=[4, 4], window_size=4, drop_path_rate=0.1)
 print(netG)  # print full net
 params = sum([np.prod(p.shape) for p in netG.parameters() if p.trainable])
 print("Initialized TurbNet with {} trainable params ".format(params))
